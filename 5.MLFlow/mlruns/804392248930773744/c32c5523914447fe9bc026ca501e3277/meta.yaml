@@ -1,0 +1,16 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/c32c5523914447fe9bc026ca501e3277/artifacts
+deleted_time: 1743694096890
+end_time: 1743109600292
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: deleted
+run_id: c32c5523914447fe9bc026ca501e3277
+run_name: Modelo_Decision_Tree
+run_uuid: c32c5523914447fe9bc026ca501e3277
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743109600161
+status: 3
+tags: []
+user_id: Pablo

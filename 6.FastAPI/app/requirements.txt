@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+google-cloud-storage
+torch
+opencv-python
+mediapipe
+numpy==1.26.1
+pandas
+scikit-learn
+xgboost
+catboost
+matplotlib
+python-multipart
+pyspark

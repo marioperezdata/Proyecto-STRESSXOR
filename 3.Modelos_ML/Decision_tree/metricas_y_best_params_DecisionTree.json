@@ -1,0 +1,21 @@
+{
+    "best_params": {
+        "max_depth": 15,
+        "min_samples_leaf": 3,
+        "max_leaf_nodes": 122,
+        "min_impurity_decrease": 0.003
+    },
+    "train_metrics": {
+        "accuracy": 0.8046511627906977,
+        "f1_score": 0.8051195741035901,
+        "precision": 0.8189881396345973,
+        "recall": 0.8046511627906977
+    },
+    "test_metrics": {
+        "accuracy": 0.7304832713754646,
+        "f1_score": 0.72721907929184,
+        "precision": 0.7431857956437634,
+        "recall": 0.7304832713754646
+    },
+    "overfit_gap": 0.07416789141523306
+}

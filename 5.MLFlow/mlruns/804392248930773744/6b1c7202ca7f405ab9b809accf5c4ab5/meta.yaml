@@ -1,0 +1,15 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/6b1c7202ca7f405ab9b809accf5c4ab5/artifacts
+end_time: 1743694844685
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: active
+run_id: 6b1c7202ca7f405ab9b809accf5c4ab5
+run_name: Modelo_Regresión_Logística
+run_uuid: 6b1c7202ca7f405ab9b809accf5c4ab5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743694844587
+status: 3
+tags: []
+user_id: Pablo

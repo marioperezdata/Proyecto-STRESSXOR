@@ -1,0 +1,16 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/f45266d30ad74ec5a888dc3bb8790cc7/artifacts
+deleted_time: 1742930181602
+end_time: 1742852113920
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: deleted
+run_id: f45266d30ad74ec5a888dc3bb8790cc7
+run_name: Modelo_XGBoost_2_P3
+run_uuid: f45266d30ad74ec5a888dc3bb8790cc7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1742852113777
+status: 3
+tags: []
+user_id: Pablo

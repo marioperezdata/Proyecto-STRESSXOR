@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predecir Estrés - StressXOR</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            flex-direction: column;
+        }
+        form {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 2px 2px 12px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+        label {
+            font-weight: bold;
+        }
+        select, input[type="submit"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="submit"], .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover, .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Predecir Estrés</h2>
+        <form action="/predict" method="get">
+            <label for="video">Selecciona un video:</label><br>
+            <select name="video" id="video" required>
+                {{ video_options|safe }}
+            </select><br>
+            
+            <label for="model_filename">Selecciona un modelo:</label><br>
+            <select name="model_filename" id="model_filename" required>
+                {{ model_options|safe }}
+            </select><br>
+            
+            <label for="model_type">Tipo de modelo:</label><br>
+            <select name="model_type" id="model_type" required>
+                <option value="nn">Red Neuronal</option>
+                <option value="xgb">XGBoost</option>
+                <option value="rf">Random Forest</option>
+                <option value="cbm">CatBoost</option>
+            </select><br><br>
+            
+            <input type="submit" value="Predecir">
+        </form>
+        <br>
+        <a href="/"><button class="btn">Volver a Inicio</button></a>
+    </div>
+</body>
+</html>

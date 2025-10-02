@@ -1,0 +1,52 @@
+Feature_Name,Zona_Corporal,Fuente,Relacion_MediaPipe
+Sneutral,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Shappy,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Ssad,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Sangry,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Ssurprised,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Sscared,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+Sdisgusted,Emociones faciales,FaceReader,No directa (resultado interpretación landmarks)
+SmouthOpen,Boca,FaceReader,61-291 (Boca)
+SleftEyeClosed,Ojo izquierdo,FaceReader,362-263 (Ojo izquierdo)
+SrightEyeClosed,Ojo derecho,FaceReader,33-133 (Ojo derecho)
+SleftEyebrowLowered,Cejas izquierda,FaceReader,70-85 (Cejas izquierda)
+SleftEyebrowRaised,Cejas izquierda,FaceReader,70-85 (Cejas izquierda)
+SrightEyebrowLowered,Cejas derecha,FaceReader,336-356 (Cejas derecha)
+SrightEyebrowRaised,Cejas derecha,FaceReader,336-356 (Cejas derecha)
+SgazeDirectionForward,Ojos y pupilas,FaceReader,33-133 y 362-263 (Ojos y pupilas)
+SgazeDirectionLeft,Ojos y pupilas,FaceReader,33-133 y 362-263 (Ojos y pupilas)
+SgazeDirectionRight,Ojos y pupilas,FaceReader,33-133 y 362-263 (Ojos y pupilas)
+SAu01_InnerBrowRaiser,Cejas internas,FaceReader,70-85
+SAu02_OuterBrowRaiser,Cejas externas,FaceReader,70-103
+SAu04_BrowLowerer,Cejas completas,FaceReader,70-103
+SAu05_UpperLidRaiser,Párpados superiores,FaceReader,33-133 y 362-263
+SAu06_CheekRaiser,Mejillas,FaceReader,Mejillas y ojos inferiores
+SAu07_LidTightener,Párpados,FaceReader,33-133 y 362-263
+SAu09_NoseWrinkler,Nariz,FaceReader,"1-5, 197-205"
+SAu10_UpperLipRaiser,Labio superior,FaceReader,78-95
+SAu12_LipCornerPuller,Comisuras labios,FaceReader,"78, 308"
+SAu14_Dimpler,Mejillas,FaceReader,Mejillas
+SAu15_LipCornerDepressor,Comisuras labios,FaceReader,"78, 308"
+SAu17_ChinRaiser,Mentón,FaceReader,152
+SAu20_LipStretcher,Labios,FaceReader,Labios (78-308)
+SAu23_LipTightener,Labios,FaceReader,Labios (78-308)
+SAu24_LipPressor,Labios,FaceReader,Labios (78-308)
+SAu25_LipsPart,Boca,FaceReader,61-291
+SAu26_JawDrop,Mandíbula,FaceReader,Mandíbula inferior
+SAu27_MouthStretch,Boca y comisuras,FaceReader,61-291
+SAu43_EyesClosed,Ojos completos,FaceReader,33-133 y 362-263
+leftShoulderAngleavg,Hombro izquierdo,Kinect,No equivalente (MediaPipe solo cara)
+rightShoulderAngleavg,Hombro derecho,Kinect,No equivalente (MediaPipe solo cara)
+leanAngleavg,Inclinación cuerpo,Kinect,"Cabeza, inferido indirectamente con landmarks faciales"
+HipCenter_Spine-Spine_ShoulderCenteravg,Cadera - columna superior,Kinect,No equivalente
+Spine_ShoulderCenter-ShoulderCenter_Headavg,Columna - cabeza,Kinect,Relación indirecta orientación cabeza
+ShoulderLeft_ElbowLeft-ElbowLeft_WristLeftavg,Codo izquierdo - muñeca izquierda,Kinect,No equivalente
+ShoulderRight_ElbowRight-ElbowRight_WristRightavg,Codo derecho - muñeca derecha,Kinect,No equivalente
+Valence_rc,Valencia emocional,Sensor Fisiológico,No aplicable
+Arousal_rc,Arousal emocional,Sensor Fisiológico,No aplicable
+Dominance,Dominancia,Sensor Fisiológico,No aplicable
+Stress,Estrés,Sensor Fisiológico,No aplicable
+MentalEffort,Esfuerzo mental,Sensor Fisiológico,No aplicable
+HR,Frecuencia cardíaca,Sensor Fisiológico,No aplicable
+RMSSD,Variabilidad HR,Sensor Fisiológico,No aplicable
+SCL,Conductancia piel,Sensor Fisiológico,No aplicable

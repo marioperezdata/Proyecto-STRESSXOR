@@ -1,0 +1,16 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/3124506ab198410d9cc704e5b68e5c8e/artifacts
+deleted_time: 1742930278240
+end_time: 1742930079560
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: deleted
+run_id: 3124506ab198410d9cc704e5b68e5c8e
+run_name: Modelo_Random_Forest
+run_uuid: 3124506ab198410d9cc704e5b68e5c8e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1742930079431
+status: 3
+tags: []
+user_id: Pablo

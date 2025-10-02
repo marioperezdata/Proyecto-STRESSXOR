@@ -1,0 +1,16 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/887d60f712654995b2c86acfc8d0b133/artifacts
+deleted_time: 1743694863738
+end_time: 1743693984291
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: deleted
+run_id: 887d60f712654995b2c86acfc8d0b133
+run_name: Modelo_CatBoost
+run_uuid: 887d60f712654995b2c86acfc8d0b133
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743693984250
+status: 4
+tags: []
+user_id: Pablo

@@ -1,0 +1,24 @@
+{
+    "best_params": {
+        "bootstrap_type": "Bernoulli",
+        "iterations": 1289,
+        "depth": 4,
+        "learning_rate": 0.017993036254249285,
+        "l2_leaf_reg": 23.335645649737415,
+        "random_strength": 0.7171275000339349,
+        "border_count": 72,
+        "min_data_in_leaf": 10,
+        "loss_function": "RMSE",
+        "od_type": "Iter",
+        "od_wait": 53,
+        "subsample": 0.792685982301779
+    },
+    "mse_train": 0.4172493088835202,
+    "rmse_train": 0.6459483794263441,
+    "r2_train": 0.9093623262212045,
+    "mae_train": 0.49364438077902734,
+    "mse_test": 0.8158940869259141,
+    "rmse_test": 0.9032685574766312,
+    "r2_test": 0.8258399974487742,
+    "mae_test": 0.6761564238838553
+}

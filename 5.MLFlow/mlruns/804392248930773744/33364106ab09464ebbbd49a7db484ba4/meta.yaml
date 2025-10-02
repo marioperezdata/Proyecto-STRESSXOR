@@ -1,0 +1,16 @@
+artifact_uri: file:///c:/Users/Pablo/Desktop/Proyecto_final/FastAPI/mlruns/804392248930773744/33364106ab09464ebbbd49a7db484ba4/artifacts
+deleted_time: 1743109687441
+end_time: 1742931565336
+entry_point_name: ''
+experiment_id: '804392248930773744'
+lifecycle_stage: deleted
+run_id: 33364106ab09464ebbbd49a7db484ba4
+run_name: Modelo_LSTM
+run_uuid: 33364106ab09464ebbbd49a7db484ba4
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1742931565172
+status: 3
+tags: []
+user_id: Pablo

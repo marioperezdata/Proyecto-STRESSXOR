@@ -1,0 +1,20 @@
+{
+    "best_params": {
+        "n_estimators": 550,
+        "criterion": "entropy",
+        "max_depth": 6,
+        "min_samples_split": 8,
+        "min_samples_leaf": 4,
+        "min_weight_fraction_leaf": 0.01,
+        "max_features": "log2",
+        "max_leaf_nodes": 119,
+        "min_impurity_decrease": 0.03,
+        "class_weight": "balanced",
+        "ccp_alpha": 0.0,
+        "max_samples": 0.65,
+        "oob_score": false
+    },
+    "train_accuracy": 0.7679069767441861,
+    "test_accuracy": 0.7174721189591078,
+    "overfit_gap": 0.05043485778507828
+}

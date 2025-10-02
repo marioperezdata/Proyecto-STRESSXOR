@@ -1,0 +1,795 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import math
+import scipy.stats as stats
+from datetime import datetime
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import PowerTransformer, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
+
+#UTILS SUBSET A ANALYSIS
+
+def cargar_datos_csv(ruta_archivo, separador=",", decimal="."):
+    """
+    Carga un archivo CSV respetando el separador y formato de decimales.
+
+    Parámetros:
+    ruta_archivo (str): Ruta del archivo CSV.
+    separador (str): Separador de columnas (por defecto ",").
+    decimal (str): Símbolo decimal (por defecto ".").
+
+    Retorna:
+    pd.DataFrame: DataFrame con los datos cargados.
+    """
+    try:
+        df = pd.read_csv(
+            ruta_archivo,
+            sep=separador,           # Usar el separador adecuado
+            decimal=decimal,         # Formato decimal correcto
+            skip_blank_lines=True,   # Evitar filas vacías
+            na_values=[",,"],        # Tratar ",," como valores nulos
+            engine="python"          # Mayor flexibilidad
+        )
+
+        # Normalizar espacios en los nombres de columnas
+        df.columns = df.columns.str.strip()
+
+        print(f"Datos cargados correctamente: {ruta_archivo}")
+        return df
+    except Exception as e:
+        print(f"Error al cargar {ruta_archivo}: {e}")
+        return None
+
+def adjust_invalid_dates(date_str):
+    """
+    Ajusta fechas con el día 31 en meses no válidos y las convierte al último día válido del mes.
+
+    Parámetros:
+    date_str (str): Fecha en formato de cadena.
+
+    Retorna:
+    str: Fecha ajustada o None si es inválida.
+    """
+    try:
+        # Intentar convertir la fecha en un objeto datetime
+        date_obj = pd.to_datetime(date_str, format="%Y%m%dT%H%M%S%f", errors='raise')
+        return date_str  # Si la fecha es válida, devolverla tal como está
+    except ValueError:
+        # Si ocurre un ValueError, es porque la fecha no es válida (por ejemplo, 31 de septiembre)
+        
+        # Convertimos la fecha con el formato "%Y%m%dT%H%M%S%f", y si no es válida (coerce), ajustamos
+        try:
+            # Extraemos el año, mes, día y hora de la fecha
+            year = int(date_str[:4])
+            month = int(date_str[4:6])
+            day = int(date_str[6:8])
+            time_str = date_str[8:]
+            
+            # Revisar si es 31 de un mes que no tiene 31
+            if month in [4, 6, 9, 11] and day == 31:
+                day = 30
+            elif month == 2 and day == 31:
+                # Si es febrero, se cambia al último día (28 o 29)
+                if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)):
+                    day = 29
+                else:
+                    day = 28
+            
+            # Reconstruimos la fecha con el día corregido
+            adjusted_date_str = f"{year:04d}{month:02d}{day:02d}{time_str}"
+            # Convertir la fecha ajustada a datetime
+            adjusted_date_obj = pd.to_datetime(adjusted_date_str, format="%Y%m%dT%H%M%S%f", errors='raise')
+            return adjusted_date_str  # Si la fecha es válida, devolverla como string
+        except Exception as e:
+            return None  # Si aún es inválido, devolver None
+
+
+def formateo_fechas(df):
+    """
+    Convierte la columna 'timestamp' a formato datetime y ajusta fechas inválidas,
+    como 31 de septiembre, al 30 de septiembre.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos cargados.
+
+    Retorna:
+    pd.DataFrame: DataFrame con la columna 'timestamp' convertida y corregida.
+    """
+    if 'timestamp' in df.columns:
+        # Limpiar espacios en blanco y convertir las fechas a string
+        df['timestamp'] = df['timestamp'].astype(str).str.strip()
+
+        # Ajustar fechas usando la función 'adjust_invalid_dates' para cada fila
+        df['timestamp'] = df['timestamp'].apply(adjust_invalid_dates)
+
+        # Convertir a datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format="%Y%m%dT%H%M%S%f", errors='coerce')
+
+    return df
+
+def eliminar_columnas(df, columnas_a_eliminar):
+    """
+    Elimina columnas específicas de un DataFrame.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame original.
+    columnas_a_eliminar (list): Lista con los nombres de las columnas a eliminar.
+
+    Retorna:
+    pd.DataFrame: DataFrame sin las columnas especificadas.
+    """
+    columnas_presentes = [col for col in columnas_a_eliminar if col in df.columns]
+    df = df.drop(columns=columnas_presentes, errors='ignore')
+    print(f"Se eliminaron las columnas: {columnas_presentes}")
+    return df
+
+def comparar_columnas(df1, df2):
+    """
+    Compara los nombres de las columnas entre dos dataframes.
+
+    Parámetros:
+    df1 (str): dataframe 1
+    df2 (str): dataf6rame 2
+    """
+    
+    columnas_1 = set(df1.columns)
+    columnas_2 = set(df2.columns)
+
+    print("Columnas en común:", columnas_1 & columnas_2)
+    print("Columnas solo en el primer archivo:", columnas_1 - columnas_2)
+    print("Columnas solo en el segundo archivo:", columnas_2 - columnas_1)
+
+def evaluar_datos_faltantes(df):
+    """
+    Evalúa los datos faltantes y los representa en una tabla clara.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame a analizar.
+
+    Retorna:
+    pd.DataFrame: Tabla con la evaluación de datos faltantes.
+    """
+    missing_data = df.isnull().sum()
+    missing_percent = (missing_data / len(df)) * 100
+
+    tabla_nulos = pd.DataFrame({
+        'Columna': df.columns,
+        'Valores Faltantes': missing_data,
+        'Porcentaje (%)': missing_percent
+    }).sort_values(by='Porcentaje (%)', ascending=False)
+
+    return tabla_nulos
+
+import pandas as pd
+
+#def auto_na_imputer(df):
+#    """
+#    Imputa valores nulos en un DataFrame, filtrando previamente por 'PP' y 'Condition'.
+#    
+#    Estrategias:
+#    - Para datos fisiológicos: Interpolación lineal.
+#    - Para expresiones faciales/corporales: Interpolación polinómica (orden 2).
+#    - Para interacciones con la computadora: Forward Fill ('ffill').
+#
+#    Parámetros:
+#    df (pd.DataFrame): DataFrame con valores nulos a imputar.
+#
+#    Retorna:
+#    pd.DataFrame: Nuevo DataFrame con valores imputados por grupo.
+#    """
+#    
+#    # Crear un nuevo DataFrame para almacenar los resultados
+#    df_imputado = pd.DataFrame()
+#    #Listas con nombres de columnas según datos fisiologicos, expresiones faciales,
+#    #expresiones corporales o datos fisiologicos
+#    cols_compint = ["SnMouseAct", "SnLeftClicked", "SnRightClicked", "SnDoubleClicked",	
+#                    "SnWheel", "SnDragged", "SnMouseDistance", "SnMouseDistance", "SnKeyStrokes",
+#                    "SnChars", "SnSpecialKeys", "SnDirectionKeys", "SnErrorKeys", "SnShortcutKeys",
+#                    "SnSpaces", "SnAppChange", "SnTabfocusChange"]
+#    cols_facexpr = ["Squality", "Sneutral", "Shappy", "Ssad", "Sangry", "Ssurprised", "Sscared",
+#                    "Sdisgusted", "Svalence", "SyHeadOrientation", "SxHeadOrientation",
+#                    "SzHeadOrientation", "SmouthOpen", "SleftEyeClosed", "SrightEyeClosed",
+#                    "SleftEyebrowLowered", "SleftEyebrowRaised", "SrightEyebrowLowered",
+#                    "SrightEyebrowRaised", "SgazeDirectionForward", "SgazeDirectionLeft",
+#                    "SgazeDirectionRight", "SAu01_InnerBrowRaiser", "SAu02_OuterBrowRaiser",
+#                    "SAu04_BrowLowerer", "SAu05_UpperLidRaiser", "SAu06_CheekRaiser",	
+#                    "SAu07_LidTightener", "SAu09_NoseWrinkler", "SAu10_UpperLipRaiser",
+#                    "SAu12_LipCornerPuller", "SAu14_Dimpler", "SAu15_LipCornerDepressor",
+#                    "SAu17_ChinRaiser", "SAu20_LipStretcher", "SAu23_LipTightener", "SAu24_LipPressor",
+#                    "SAu25_LipsPart", "SAu26_JawDrop", "SAu27_MouthStretch", "SAu43_EyesClosed"]
+#    cols_bodpost = ["avgDepth(avg)", "leftShoulderAngle(avg)", "rightShoulderAngle(avg)",
+#                  "leanAngle(avg)", "HipCenter_Spine-Spine_ShoulderCenter(avg)",
+#                  "Spine_ShoulderCenter-ShoulderCenter_Head(avg)", "Spine_ShoulderCenter-ShoulderCenter_ShoulderLeft(avg)",
+#                  "Spine_ShoulderCenter-ShoulderCenter_ShoulderRight(avg)", "ShoulderCenter_ShoulderLeft-ShoulderLeft_ElbowLeft(avg)",
+#                  "ShoulderLeft_ElbowLeft-ElbowLeft_WristLeft(avg)", "ElbowLeft_WristLeft-WristLeft_HandLeft(avg)",
+#                  "ShoulderCenter_ShoulderRight-ShoulderRight_ElbowRight(avg)", "ShoulderRight_ElbowRight-ElbowRight_WristRight(avg)", 
+#                  "ElbowRight_WristRight-WristRight_HandRight(avg)", "HipCenter_Spine-PlaneZXAxisX(avg)", "HipCenter_Spine-PlaneXYAxisY(avg)",
+#                  "HipCenter_Spine-PlaneYZAxisZ(avg)", "Spine_ShoulderCenter-PlaneZXAxisX(avg)", "Spine_ShoulderCenter-PlaneXYAxisY(avg)",
+#                  "Spine_ShoulderCenter-PlaneYZAxisZ(avg)", "ShoulderCenter_Head-PlaneZXAxisX(avg)", "ShoulderCenter_Head-PlaneXYAxisY(avg)",
+#                  "ShoulderCenter_Head-PlaneYZAxisZ(avg)", "ShoulderCenter_ShoulderLeft-PlaneZXAxisX(avg)",
+#                  "ShoulderCenter_ShoulderLeft-PlaneXYAxisY(avg)", "ShoulderCenter_ShoulderLeft-PlaneYZAxisZ(avg)",
+#                  "ShoulderCenter_ShoulderRight-PlaneZXAxisX(avg)", "ShoulderCenter_ShoulderRight-PlaneXYAxisY(avg)",
+#                  "ShoulderCenter_ShoulderRight-PlaneYZAxisZ(avg)", "ShoulderLeft_ElbowLeft-PlaneZXAxisX(avg)",
+#                  "ShoulderLeft_ElbowLeft-PlaneXYAxisY(avg)", "ShoulderLeft_ElbowLeft-PlaneYZAxisZ(avg)", "ElbowLeft_WristLeft-PlaneZXAxisX(avg)",
+#                  "ElbowLeft_WristLeft-PlaneXYAxisY(avg)", "ElbowLeft_WristLeft-PlaneYZAxisZ(avg)", "WristLeft_HandLeft-PlaneZXAxisX(avg)",
+#                  "WristLeft_HandLeft-PlaneXYAxisY(avg)", "WristLeft_HandLeft-PlaneYZAxisZ(avg)", "ShoulderRight_ElbowRight-PlaneZXAxisX(avg)",
+#                  "ShoulderRight_ElbowRight-PlaneXYAxisY(avg)", "ShoulderRight_ElbowRight-PlaneYZAxisZ(avg)",
+#                  "ElbowRight_WristRight-PlaneZXAxisX(avg)", "ElbowRight_WristRight-PlaneXYAxisY(avg)", "ElbowRight_WristRight-PlaneYZAxisZ(avg)",
+#                  "WristRight_HandRight-PlaneZXAxisX(avg)", "WristRight_HandRight-PlaneXYAxisY(avg)", "WristRight_HandRight-KinectZAxis(avg)",
+#                  "avgDepth(stdv)", "leftShoulderAngle(stdv)", "rightShoulderAngle(stdv)", "leanAngle(stdv)",
+#                  "HipCenter_Spine-Spine_ShoulderCenter(stdv)", "Spine_ShoulderCenter-ShoulderCenter_Head(stdv)",
+#                  "Spine_ShoulderCenter-ShoulderCenter_ShoulderLeft(stdv)", "Spine_ShoulderCenter-ShoulderCenter_ShoulderRight(stdv)",
+#                  "ShoulderCenter_ShoulderLeft-ShoulderLeft_ElbowLeft(stdv)", "ShoulderLeft_ElbowLeft-ElbowLeft_WristLeft(stdv)",
+#                  "ElbowLeft_WristLeft-WristLeft_HandLeft(stdv)", "ShoulderCenter_ShoulderRight-ShoulderRight_ElbowRight(stdv)",
+#                  "ShoulderRight_ElbowRight-ElbowRight_WristRight(stdv)", "ElbowRight_WristRight-WristRight_HandRight(stdv)",
+#                  "HipCenter_Spine-PlaneZXAxisX(stdv)", "HipCenter_Spine-PlaneXYAxisY(stdv)", "HipCenter_Spine-PlaneYZAxisZ(stdv)",
+#                  "Spine_ShoulderCenter-PlaneZXAxisX(stdv)", "Spine_ShoulderCenter-PlaneXYAxisY(stdv)", "Spine_ShoulderCenter-PlaneYZAxisZ(stdv)",
+#                  "ShoulderCenter_Head-PlaneZXAxisX(stdv)", "ShoulderCenter_Head-PlaneXYAxisY(stdv)", "ShoulderCenter_Head-PlaneYZAxisZ(stdv)",
+#                  "ShoulderCenter_ShoulderLeft-PlaneZXAxisX(stdv)", "ShoulderCenter_ShoulderLeft-PlaneXYAxisY(stdv)",
+#                  "ShoulderCenter_ShoulderLeft-PlaneYZAxisZ(stdv)", "ShoulderCenter_ShoulderRight-PlaneZXAxisX(stdv)",
+#                  "ShoulderCenter_ShoulderRight-PlaneXYAxisY(stdv)", "ShoulderCenter_ShoulderRight-PlaneYZAxisZ(stdv)",
+#                  "ShoulderLeft_ElbowLeft-PlaneZXAxisX(stdv)", "ShoulderLeft_ElbowLeft-PlaneXYAxisY(stdv)",
+#                  "ShoulderLeft_ElbowLeft-PlaneYZAxisZ(stdv)", "ElbowLeft_WristLeft-PlaneZXAxisX(stdv)",
+#                  "ElbowLeft_WristLeft-PlaneXYAxisY(stdv)", "ElbowLeft_WristLeft-PlaneYZAxisZ(stdv)", "WristLeft_HandLeft-PlaneZXAxisX(stdv)",
+#                  "WristLeft_HandLeft-PlaneXYAxisY(stdv)", "WristLeft_HandLeft-PlaneYZAxisZ(stdv)", "ShoulderRight_ElbowRight-PlaneZXAxisX(stdv)",
+#                  "ShoulderRight_ElbowRight-PlaneXYAxisY(stdv)", "ShoulderRight_ElbowRight-PlaneYZAxisZ(stdv)",
+#                  "ElbowRight_WristRight-PlaneZXAxisX(stdv)", "ElbowRight_WristRight-PlaneXYAxisY(stdv)", "ElbowRight_WristRight-PlaneYZAxisZ(stdv)",
+#                  "WristRight_HandRight-PlaneZXAxisX(stdv)", "WristRight_HandRight-PlaneXYAxisY(stdv)", "WristRight_HandRight-KinectZAxis(stdv)"]
+#
+#    cols_phisio = ["HR", "RMSSD", "SCL"]      
+#    # Iterar por cada grupo de PP y Condition
+#    for (pp, condition), grupo in df.groupby(['PP', 'Condition']):
+#        grupo = grupo.copy()  # Evitar SettingWithCopyWarning
+#
+#        for col in grupo.columns:
+#            if grupo[col].isna().sum() > 0:  # Solo si hay NaN en la columna
+#                if grupo[col].dtype == 'object':  # Categóricas
+#                    grupo[col] = grupo[col].fillna(grupo[col].mode().iloc[0])
+#                elif grupo[col].dtype in ['float64', 'int64']:  # Numéricas
+#                    if col in cols_phisio:  # Datos fisiológicos
+#                        grupo[col] = grupo[col].interpolate(method='linear')
+#                    elif col in cols_facexpr or col in cols_bodpost:  # Expresiones faciales/corporales
+#                        grupo[col] = grupo[col].interpolate(method='polynomial', order=2)
+#                    elif col in cols_compint:  # Interacciones con la computadora
+#                        grupo[col] = grupo[col].fillna(method='ffill')
+#
+#        # Agregar el grupo procesado al nuevo DataFrame
+#        df_imputado = pd.concat([df_imputado, grupo], ignore_index=True)
+#
+#    return df_imputado
+
+def clasificar_momento_dia(df, columna_timestamp="timestamp"):
+    """
+    Clasifica los valores de timestamp en 'mañana', 'tarde' o 'noche'.
+    
+    Parámetros:
+    df (pd.DataFrame): DataFrame con la columna de timestamp en formato datetime.
+    columna_timestamp (str): Nombre de la columna con el timestamp.
+
+    Retorna:
+    pd.DataFrame: DataFrame con una nueva columna 'momento_dia'.
+    """
+    if columna_timestamp not in df.columns:
+        print(f"Error: La columna '{columna_timestamp}' no existe en el DataFrame.")
+        return df
+
+    # Definir momentos del día
+    def obtener_momento(hora):
+        if 6 <= hora < 12:
+            return "mañana"
+        elif 12 <= hora < 18:
+            return "tarde"
+        else:
+            return "noche"
+
+    # Aplicar la función a la columna de horas
+    df["momento_dia"] = df[columna_timestamp].dt.hour.map(obtener_momento)
+
+    return df
+
+
+#EVALUCIÓN DE COLUMNAS DE UN MISMO ARCHIVO
+
+def calcular_correlacion(df, col1, col2):
+    """
+    Calcula la correlación entre dos columnas de un DataFrame.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    col1 (str): Nombre de la primera columna.
+    col2 (str): Nombre de la segunda columna.
+
+    Retorna:
+    float: Valor de la correlación.
+    """
+    if col1 in df.columns and col2 in df.columns:
+        correlacion = df[col1].corr(df[col2])
+        print(f"Correlación entre {col1} y {col2}: {correlacion:.4f}")
+        return correlacion
+    else:
+        print(f"Una de las columnas {col1} o {col2} no existe en el DataFrame.")
+        return None
+
+def graficar_histogramas_2col(df, col1, col2):
+    """
+    Genera histogramas comparativos de dos columnas.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    col1 (str): Nombre de la primera columna.
+    col2 (str): Nombre de la segunda columna.
+    """
+    if col1 in df.columns and col2 in df.columns:
+        plt.figure(figsize=(10, 5))
+        sns.histplot(df[col1], bins=30, kde=True, label=col1, color="blue", alpha=0.5)
+        sns.histplot(df[col2], bins=30, kde=True, label=col2, color="red", alpha=0.5)
+        plt.legend()
+        plt.title(f"Distribución de {col1} vs {col2}")
+        plt.xlabel("Distancia del mouse")
+        plt.ylabel("Frecuencia")
+        plt.show()
+    else:
+        print(f"Una de las columnas {col1} o {col2} no existe en el DataFrame.")
+
+def graficar_scatter(df, col1, col2):
+    """
+    Genera un scatter plot para comparar dos columnas.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    col1 (str): Nombre de la primera columna.
+    col2 (str): Nombre de la segunda columna.
+    """
+    if col1 in df.columns and col2 in df.columns:
+        plt.figure(figsize=(6, 6))
+        sns.scatterplot(x=df[col1], y=df[col2], alpha=0.5)
+        plt.title(f"Comparación {col1} vs {col2}")
+        plt.xlabel(col1)
+        plt.ylabel(col2)
+        plt.show()
+    else:
+        print(f"Una de las columnas {col1} o {col2} no existe en el DataFrame.")
+
+
+#ANALISIS EXPLORATOTIO
+
+def graficar_boxplots(df, columnas_numericas):
+    """
+    Genera boxplots de las features por cada Condition en una única figura.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    columnas_numericas (list): Lista de columnas numéricas a graficar.
+    """
+    if "Condition" not in df.columns:
+        print("La columna 'Condition' no existe en el DataFrame.")
+        return
+
+    # Definir la cantidad de filas y columnas en la cuadrícula
+    num_vars = len(columnas_numericas)
+    cols = 4  # Número de columnas en la cuadrícula
+    rows = math.ceil(num_vars / cols)  # Número de filas, ajustado dinámicamente
+
+    # Crear la figura y los ejes
+    fig, axes = plt.subplots(rows, cols, figsize=(20, 5 * rows))  # Ajusta tamaño
+    axes = axes.flatten()  # Asegurar acceso a los ejes como una lista
+
+    # Graficar cada boxplot en su correspondiente subplot
+    for i, col in enumerate(columnas_numericas):
+        if col in df.columns:
+            sns.boxplot(x="Condition", y=col, data=df, ax=axes[i])
+            axes[i].set_title(f"Distribución de {col} por Condition")
+            axes[i].tick_params(axis="x", rotation=45)
+        else:
+            axes[i].axis("off")  # Ocultar subplot vacío si hay menos columnas de las esperadas
+            print(f"La columna '{col}' no existe en el DataFrame.")
+
+    # Ajustar espaciado
+    plt.tight_layout()
+    plt.show()
+
+def correlacion(df, columnas_numericas=None):
+    """
+    Genera matrices de correlación .
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    columnas_numericas (list): Lista de columnas numéricas a analizar.
+    """
+    if columnas_numericas is None:
+        # If no columns are specified, consider all numerical columns
+        columnas_numericas = df.select_dtypes(include=['number']).columns
+    corr_matrix = np.abs(df[columnas_numericas].corr())
+    # Crear máscara para la mitad superior
+    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+    # Configurar figura
+    plt.figure(figsize=(200, 188))
+    sns.heatmap(corr_matrix, mask=mask, vmin=0.0, vmax=1.0, center=0.5,
+                linewidths=0.5, cmap="YlGnBu", cbar_kws={"shrink": .8},
+                annot=True, fmt=".2f")
+    plt.title(f"Matriz de Correlación")
+    plt.show()
+
+
+def correlacion_por_condition(df, columnas_numericas):
+    """
+    Genera matrices de correlación dentro de cada 'Condition', con un heatmap estilizado.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    columnas_numericas (list): Lista de columnas numéricas a analizar.
+    """
+    if "Condition" not in df.columns:
+        print("La columna 'Condition' no existe en el DataFrame.")
+        return
+
+    condiciones = df["Condition"].unique()
+
+    for condition in condiciones:
+        subset = df[df["Condition"] == condition]
+        corr_matrix = np.abs(subset[columnas_numericas].corr())
+
+        # Crear máscara para la mitad superior
+        mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+
+        # Configurar figura
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(corr_matrix, mask=mask, vmin=0.0, vmax=1.0, center=0.5,
+                    linewidths=0.5, cmap="YlGnBu", cbar_kws={"shrink": .8},
+                    annot=True, fmt=".2f")
+
+        plt.title(f"Matriz de Correlación - Condition: {condition}")
+        plt.show()
+
+def graficar_histogramas(df, bins=50, figsize=(20, 10)):
+    """
+    Genera histogramas para todas las columnas numéricas de un DataFrame.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    bins (int): Número de bins (intervalos) para los histogramas.
+    figsize (tuple): Tamaño de la figura (ancho, alto).
+    """
+    df.hist(bins=bins, figsize=figsize)
+    plt.tight_layout()
+    plt.show()
+
+
+def graficar_histogramas_por_condition(df, bins=50, figsize=(20, 10)):
+    """
+    Genera histogramas de las columnas numéricas, separados por cada Condition.
+
+    Parámetros:
+    df (pd.DataFrame): DataFrame con los datos.
+    bins (int): Número de bins (intervalos) para los histogramas.
+    figsize (tuple): Tamaño de la figura (ancho, alto).
+    """
+    if "Condition" not in df.columns:
+        print("La columna 'Condition' no existe en el DataFrame.")
+        return
+
+    condiciones = df["Condition"].unique()
+    
+    for condition in condiciones:
+        subset = df[df["Condition"] == condition]
+        subset.hist(bins=bins, figsize=figsize)
+        plt.suptitle(f"Histogramas para Condition: {condition}")
+        plt.tight_layout()
+        plt.show()
+
+def comparar_histogramas(df1, df2, bins=50):
+    """
+    Genera histogramas comparativos de las variables numéricas en sheet_1 y sheet_2.
+
+    Parámetros:
+    df1 (pd.DataFrame): Primer DataFrame.
+    df2 (pd.DataFrame): Segundo DataFrame.
+    columnas_numericas (list): Lista de columnas numéricas a graficar.
+    bins (int): Número de bins para los histogramas.
+    """
+    # Identificar columnas numéricas presentes en ambos DataFrames
+    columnas_numericas_1 = set(df1.select_dtypes(include=['number']).columns)
+    columnas_numericas_2 = set(df2.select_dtypes(include=['number']).columns)
+    columnas_numericas = list(columnas_numericas_1.intersection(columnas_numericas_2))
+
+    if not columnas_numericas:
+        print("No hay columnas numéricas en común entre los DataFrames.")
+    num_vars = len(columnas_numericas)
+    cols = 3  # Número de columnas en la cuadrícula
+    rows = math.ceil(num_vars / cols)  # Número de filas, ajustado dinámicamente
+
+    fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows))  # Ajustar tamaño
+    axes = axes.flatten()  # Convertir la cuadrícula en una lista de ejes
+
+    for i, col in enumerate(columnas_numericas):
+        if col in df1.columns and col in df2.columns:
+            sns.histplot(df1[col], bins=bins, kde=True, alpha=0.5, label="Sheet 1", ax=axes[i], color="blue")
+            sns.histplot(df2[col], bins=bins, kde=True, alpha=0.5, label="Sheet 2", ax=axes[i], color="orange")
+            axes[i].set_title(f"{col}")
+            axes[i].legend()
+        else:
+            axes[i].axis("off")  # Oculta subplots vacíos si hay menos columnas de las esperadas
+            print(f"La columna '{col}' no existe en ambos DataFrames.")
+
+    plt.tight_layout()  # Ajustar espaciado
+    plt.show()
+
+def graficar_barras_estado_animo(sheet_1, sheet_2, figsize=(20, 10)):
+    """
+    Genera gráficos de barras comparando los estados de ánimo entre PP para los DataFrames sheet_1 y sheet_2.
+
+    Parámetros:
+    sheet_1 (pd.DataFrame): Primer DataFrame con los datos.
+    sheet_2 (pd.DataFrame): Segundo DataFrame con los datos.
+    figsize (tuple): Tamaño de la figura (ancho, alto).
+    """
+    # Lista de columnas de estados de ánimo
+    columnas_estados = [
+        "Sneutral", "Shappy", "Ssad", "Sangry", 
+        "Ssurprised", "Sscared", "Sdisgusted"
+    ]
+
+    # Verificar que las columnas 'PP' y las de emociones estén presentes en ambos DataFrames
+    if "PP" not in sheet_1.columns or "PP" not in sheet_2.columns or not all(col in sheet_1.columns for col in columnas_estados) or not all(col in sheet_2.columns for col in columnas_estados):
+        print("Las columnas 'PP' o las de los estados de ánimo no existen en uno o ambos DataFrames.")
+        return
+
+    # Agrupar por PP y calcular el promedio de los estados de ánimo en ambos DataFrames
+    sheet_1_avg = sheet_1.groupby("PP")[columnas_estados].mean()
+    sheet_2_avg = sheet_2.groupby("PP")[columnas_estados].mean()
+
+    # Iterar sobre cada valor de PP
+    for pp_value in sheet_1["PP"].unique():
+        if pp_value in sheet_1_avg.index and pp_value in sheet_2_avg.index:
+            # Extraer los valores de los estados de ánimo para este PP
+            sheet_1_vals = sheet_1_avg.loc[pp_value]
+            sheet_2_vals = sheet_2_avg.loc[pp_value]
+
+            # Crear el gráfico de barras para los estados de ánimo
+            plt.figure(figsize=figsize)
+            bar_width = 0.35
+            index = range(len(columnas_estados))
+
+            # Barras para sheet_1
+            plt.bar(index, sheet_1_vals, bar_width, label=f"sheet_1 - PP: {pp_value}", alpha=0.7)
+
+            # Barras para sheet_2
+            plt.bar([i + bar_width for i in index], sheet_2_vals, bar_width, label=f"sheet_2 - PP: {pp_value}", alpha=0.7)
+
+            # Personalización del gráfico
+            plt.xlabel("Estado de ánimo")
+            plt.ylabel("Promedio")
+            plt.title(f"Comparación de estados de ánimo para PP: {pp_value}")
+            plt.xticks([i + bar_width / 2 for i in index], columnas_estados, rotation=45)
+            plt.legend()
+            plt.tight_layout()
+            plt.show()
+        else:
+            print(f"PP: {pp_value} no está presente en ambos DataFrames.")
+#FUNCIONES DE PREPROCESAMIENTO
+
+def auto_imputador_na(df):
+    """
+    Función para imputar valores faltantes en un DataFrame.
+    Para columnas numéricas, se imputan los valores nulos con la media de la columna.
+    Para columnas categóricas, se imputan los valores nulos con el valor más frecuente (moda).
+    """
+    for column in df.columns:
+        if df[column].dtype == 'float64' or df[column].dtype == 'int64':
+            # Imputar valores nulos con la media de la columna
+            df[column].fillna(df[column].mean(), inplace=True)
+        else:
+            # Imputar valores nulos con el valor más frecuente (moda)
+            df[column].fillna(df[column].mode()[0], inplace=True)
+    return df
+
+def auto_data_transform(df, columnas=None):
+    """
+    Detecta la distribución de cada columna en un DataFrame y aplica la mejor transformación.
+
+    Parámetros:
+    df (pd.DataFrame): Dataset de entrada.
+    columnas (list): Lista de columnas a analizar (opcional). Si es None, analiza todas las numéricas.
+
+    Retorna:
+    df_transformado (pd.DataFrame): Dataset con las columnas transformadas.
+    distribuciones (dict): Diccionario con la distribución detectada y la transformación aplicada.
+    """
+    if columnas is None:
+        columnas = df.select_dtypes(include=['number']).columns
+
+    df_transformado = df.copy()
+    distribuciones = {}
+
+    for col in columnas:
+        data = df[col].dropna()  # Eliminar NaN para análisis
+
+        if data.empty:
+            continue  # Saltar columnas vacías
+
+        # Prueba de normalidad de Shapiro-Wilk (p < 0.05 significa que no es normal)
+        stat, p_value = stats.shapiro(data)
+        es_normal = p_value > 0.05
+
+        if es_normal:
+            distribuciones[col] = ('Normal', 'Sin transformación')
+            continue  # Si es normal, no aplicamos transformación
+
+        # Detectar si es exponencial o altamente sesgada
+        skewness = stats.skew(data)
+
+        if skewness > 1:
+            # Solo aplicar log si todos los valores son positivos
+            if (df[col] > 0).all():
+                df_transformado[col] = np.log1p(df[col] + 1e-6)  # Evitar log(0)
+                distribuciones[col] = ('Exponencial/Sesgada', 'Logarítmica')
+            else:
+                # Aplicar Yeo-Johnson si hay valores negativos
+                pt = PowerTransformer(method='yeo-johnson')
+                df_transformado[col] = pt.fit_transform(df[[col]])
+                distribuciones[col] = ('Exponencial/Sesgada', 'Yeo-Johnson')
+
+        elif 0.5 < skewness <= 1:
+            # Intentamos transformación raíz cuadrada
+            df_transformado[col] = np.sqrt(df[col] - df[col].min() + 1)  # Evita sqrt(negativos)
+            distribuciones[col] = ('Moderadamente sesgada', 'Raíz cuadrada')
+
+        else:
+            # Si no encaja en lo anterior, aplicamos Box-Cox si todos los valores son positivos
+            if (df[col] > 0).all():
+                pt = PowerTransformer(method='box-cox')
+                df_transformado[col] = pt.fit_transform(df[[col]])
+                distribuciones[col] = ('Desconocida', 'Box-Cox')
+            else:
+                # Para datos con negativos, usamos Yeo-Johnson
+                pt = PowerTransformer(method='yeo-johnson')
+                df_transformado[col] = pt.fit_transform(df[[col]])
+                distribuciones[col] = ('Desconocida', 'Yeo-Johnson')
+
+    return df_transformado, distribuciones
+
+#def load_and_clean_data(csv_path, numeric_features):
+#    """
+#    Carga el dataset, convierte columnas numéricas y reemplaza 999.0 por NaN.
+#
+#    Parámetros:
+#    -----------
+#    csv_path : str
+#        Ruta del archivo CSV.
+#
+#    Retorna:
+#    --------
+#    df : pd.DataFrame
+#        DataFrame limpio con datos convertidos.
+#    """
+#    df = pd.read_csv(csv_path)
+#
+#    # Convertir solo las columnas numéricas
+#    for column in numeric_features:
+#        df[column] = pd.to_numeric(df[column], errors='coerce')
+#
+#    # Reemplazar 999.0 con NaN en columnas numéricas
+#    df[numeric_features] = df[numeric_features].replace(999.0, np.nan)
+#
+#    return df
+
+# Crear pipeline de preprocesamiento para variables numéricas
+#def create_numeric_pipeline():
+#    """
+#    Crea el pipeline de preprocesamiento para variables numéricas.
+#
+#    Retorna:
+#    --------
+#    numeric_pipeline : sklearn.pipeline.Pipeline
+#        Pipeline de preprocesamiento para datos numéricos.
+#    """
+#    numeric_pipeline = Pipeline([
+#        ('imputer', SimpleImputer(strategy='most_frequent')),
+#        ('yeo', PowerTransformer(method='yeo-johnson'))
+#    ])
+#    
+#    return numeric_pipeline
+#def create_numeric_pipeline():
+#    """
+#    Crea un pipeline para las características numéricas.
+#    """
+#    numeric_pipeline = Pipeline(steps=[
+#        ('imputer', SimpleImputer(strategy='mean')),
+#        ('scaler', StandardScaler())
+#    ])
+#    return numeric_pipeline
+
+def create_numeric_pipeline():
+    """
+    Crea un pipeline para las características numéricas.
+    Este pipeline usa la función auto_imputador_na para imputar los valores faltantes.
+    Además, aplica las transformaciones automáticas detectadas por auto_data_transform.
+    """
+    # Crear el transformador de función para aplicar la imputación de NaN
+    numeric_pipeline = Pipeline(steps=[
+        ('imputer', FunctionTransformer(lambda df: auto_imputador_na(df), validate=False)),  # Imputar valores faltantes
+        ('auto_transform', FunctionTransformer(lambda df: auto_data_transform(df)[0], validate=False))  # Transformación automática
+    ])
+    
+    return numeric_pipeline
+
+# Crear pipeline de preprocesamiento para variables categóricas
+def create_categorical_pipeline():
+    """
+    Crea el pipeline de preprocesamiento para variables categóricas.
+
+    Retorna:
+    --------
+    categorical_pipeline : sklearn.pipeline.Pipeline
+        Pipeline de preprocesamiento para datos categóricos.
+    """
+    categorical_pipeline = Pipeline([
+        ('encoder', OneHotEncoder(drop='first', sparse_output=False))
+    ])
+    
+    return categorical_pipeline
+
+# Aplicar preprocesamiento con ColumnTransformer
+def apply_preprocessing(df, numeric_features, categorical_features):
+    """
+    Aplica el preprocesamiento a los datos usando ColumnTransformer.
+
+    Parámetros:
+    -----------
+    df : pd.DataFrame
+        DataFrame con los datos originales.
+    numeric_features : list
+        Lista de nombres de las columnas numéricas.
+    categorical_features : list
+        Lista de nombres de las columnas categóricas.
+
+    Retorna:
+    --------
+    df_processed : pd.DataFrame
+        DataFrame con los datos preprocesados.
+    """
+    # Crear el ColumnTransformer
+    preprocessing = ColumnTransformer(
+        transformers=[
+            ('num', create_numeric_pipeline(), numeric_features),
+            ('cat', create_categorical_pipeline(), categorical_features)
+        ]
+    )
+
+    # Aplicar transformación
+    P_preprocessed = preprocessing.fit_transform(df)
+
+    # Obtener nombres de columnas transformadas
+    cat_feature_names = preprocessing.named_transformers_['cat'].get_feature_names_out(categorical_features)
+    columns_names = numeric_features + list(cat_feature_names)
+    print(f"Shape de P_preprocessed: {P_preprocessed.shape}")
+    print(f"Cantidad de nombres en columns_names: {len(columns_names)}")
+    
+    # Convertir a DataFrame
+    df_processed = pd.DataFrame(P_preprocessed, columns=columns_names)
+
+    return df_processed
+
+# Función principal para preprocesar los datos de interacción con el ordenador
+def preprocess_data(csv_path,numeric_features,categorical_features):
+    """
+    Función principal que preprocesa los datos de interacción con el ordenador.
+
+    Parámetros:
+    -----------
+    csv_path : str
+        Ruta del archivo CSV.
+
+    Retorna:
+    --------
+    df_processed : pd.DataFrame
+        DataFrame con los datos preprocesados.
+    """
+    df = cargar_datos_csv(csv_path)
+    df_processed = apply_preprocessing(df, numeric_features, categorical_features)
+    
+    return df_processed

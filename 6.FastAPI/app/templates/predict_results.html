@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title>StressXOR - Resultados</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background-color: #fff;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+      }
+      h1 {
+        margin-bottom: 10px;
+      }
+      .result-box {
+        border: 2px solid {{ box_color }};
+        background-color: {{ bg_color }};
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        display: inline-block;
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        margin-top: 20px;
+      }
+      .btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px;
+        text-decoration: none;
+      }
+      .btn:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1><em>Stress</em><strong>XOR</strong></h1>
+      <div class="result-box">
+        <p><strong>Modelo Usado:</strong> {{ model_used }}</p>
+        <p><strong>Media de Estrés:</strong> {{ avg_stress }}</p>
+        <p><strong>Estado:</strong> {{ state_message }}</p>
+      </div>
+      <h2>Gráfico de Estrés</h2>
+      <img src="data:image/png;base64,{{ stress_graph }}" alt="Gráfico de Estrés">
+      <br>
+      <a href="/save_result?video={{ video }}&model_type={{ model_type }}&model_filename={{ model_filename }}&avg_stress={{ avg_stress }}&state_message={{ state_message }}" class="btn">Guardar en Base de Datos</a>
+      <a href="/" class="btn">Volver a Inicio</a>
+    </div>
+  </body>
+</html>
